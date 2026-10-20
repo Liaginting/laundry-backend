@@ -1,3 +1,4 @@
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,39 +8,148 @@ datasource db {
 }
 
 model Tenant {
-  id           Int        @id @default(autoincrement())
-  namaLaundry  String
-  alamat       String?
-  noTelepon    String?
-  email        String?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-
-  users        User[]
-  customers    Customer[]
-}
-
-model User {
-  id           Int      @id @default(autoincrement())
-  tenantId     Int
-  nama         String
-  email        String   @unique
-  password     String
-  role         String   @default("STAFF")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  tenant       Tenant   @relation(fields: [tenantId], references: [id])
-}
-
-model Customer {
   id          Int      @id @default(autoincrement())
-  tenantId    Int
-  nama        String
-  noTelepon   String
+  namaLaundry String
   alamat      String?
+  noTelepon   String?
+  email       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  users        User[]
+  customers    Customer[]
+  services     Service[]
+  orders       Order[]
+  perfumes     Parfum[]
+  bahanLaundry BahanLaundry[]
+  riwayatStok  RiwayatStokBahan[]
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  nama      String
+  email     String?  @unique
+  password  String
+  role      String   @default("STAFF")
+  kodeKasir String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id])
+  orders Order[]
+}
+
+model Customer {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  nama      String
+  noTelepon String
+  alamat    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id])
+  orders Order[]
+}
+
+model Service {
+  id            Int      @id @default(autoincrement())
+  tenantId      Int
+  namaLayanan   String
+  tipe          String   @default("REGULER")
+  harga         Int
+  satuan        String   @default("KG")
+  estimasiWaktu Int      @default(2)
+  satuanWaktu   String   @default("HARI")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  orderDetails OrderDetail[]
+}
+
+model Order {
+  id                   Int      @id @default(autoincrement())
+  tenantId             Int
+  customerId           Int
+  userId               Int
+  nomorPesanan         String
+  status               String   @default("MENUNGGU")
+  opsiPengambilan      String   @default("AMBIL_SENDIRI")
+  alamatPengantaran    String?
+  parfumId             Int?
+  beratKg              Float?
+  stokBahanDikurangiAt DateTime?
+  totalHarga           Int      @default(0)
+  catatan              String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  tenant      Tenant             @relation(fields: [tenantId], references: [id])
+  customer    Customer           @relation(fields: [customerId], references: [id])
+  user        User               @relation(fields: [userId], references: [id])
+  parfum      BahanLaundry?      @relation("OrderParfum", fields: [parfumId], references: [id], onDelete: SetNull)
+  details     OrderDetail[]
+  riwayatStok RiwayatStokBahan[]
+}
+
+model OrderDetail {
+  id        Int @id @default(autoincrement())
+  orderId   Int
+  serviceId Int
+  jumlah    Int
+  harga     Int
+  subtotal  Int
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id])
+}
+
+model Parfum {
+  id         Int      @id @default(autoincrement())
+  tenantId   Int
+  namaParfum String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+}
+
+model BahanLaundry {
+  id             Int      @id @default(autoincrement())
+  tenantId       Int
+  nama           String
+  kategori       String
+  stokMl         Int      @default(0)
+  takaranPerKgMl Int      @default(0)
+  batasMinimumMl Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant  Tenant             @relation(fields: [tenantId], references: [id])
+  orders  Order[]            @relation("OrderParfum")
+  riwayat RiwayatStokBahan[]
+
+  @@index([tenantId, kategori])
+}
+
+model RiwayatStokBahan {
+  id            Int      @id @default(autoincrement())
+  tenantId      Int
+  bahanId       Int
+  orderId       Int?
+  jenis         String
+  jumlahMl      Int
+  stokSebelumMl Int
+  stokSesudahMl Int
+  catatan       String?
+  createdAt     DateTime @default(now())
+
+  tenant Tenant       @relation(fields: [tenantId], references: [id])
+  bahan  BahanLaundry @relation(fields: [bahanId], references: [id])
+  order  Order?       @relation(fields: [orderId], references: [id])
+
+  @@index([tenantId, createdAt])
+  @@index([orderId])
 }

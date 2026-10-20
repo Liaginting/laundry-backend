@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Service" ADD COLUMN     "tipe" TEXT NOT NULL DEFAULT 'REGULER';
